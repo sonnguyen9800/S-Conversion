@@ -17,6 +17,7 @@ type AppController struct {
 	window      fyne.Window
 	onProgress  func(float64)
 	onStatus    func(string)
+	onOutputPathChange func(string)
 	isConverting bool
 }
 
@@ -35,10 +36,65 @@ func (c *AppController) SetStatusCallback(callback func(string)) {
 	c.onStatus = callback
 }
 
+func (c *AppController) SetOutputPathCallback(callback func(string)) {
+	c.onOutputPathChange = callback
+}
+
 func (c *AppController) updateStatus(status string) {
 	if c.onStatus != nil {
 		c.onStatus(status)
 	}
+}
+
+func (c *AppController) updateOutputPath() {
+	if c.onOutputPathChange == nil {
+		return
+	}
+
+	outputPath := c.converter.OutputPath
+	if outputPath == "" {
+		if c.converter.SourcePath == "" {
+			c.onOutputPathChange("")
+			return
+		}
+		
+		if c.converter.ConversionType == model.SingleImage {
+			outputPath = filepath.Dir(c.converter.SourcePath)
+		} else {
+			outputPath = c.converter.SourcePath
+		}
+	}
+	c.onOutputPathChange(outputPath)
+}
+
+func (c *AppController) OpenOutputFolder() error {
+	outputPath := c.converter.OutputPath
+	if outputPath == "" {
+		if c.converter.SourcePath == "" {
+			return fmt.Errorf("no output location available")
+		}
+		
+		if c.converter.ConversionType == model.SingleImage {
+			outputPath = filepath.Dir(c.converter.SourcePath)
+		} else {
+			outputPath = c.converter.SourcePath
+		}
+	}
+
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("explorer", outputPath)
+	case "darwin":
+		cmd = exec.Command("open", outputPath)
+	default: // Linux and others
+		cmd = exec.Command("xdg-open", outputPath)
+	}
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error opening folder: %v", err)
+	}
+	return nil
 }
 
 func (c *AppController) HandleSingleImageSelection() (string, error) {
@@ -97,6 +153,7 @@ func (c *AppController) HandleSingleImageSelection() (string, error) {
 	c.converter.ConversionType = model.SingleImage
 	c.converter.SourcePath = path
 	c.updateStatus(fmt.Sprintf("Selected file: %s", filepath.Base(path)))
+	c.updateOutputPath()
 	return path, nil
 }
 
@@ -155,6 +212,7 @@ func (c *AppController) HandleBatchSelection() (string, error) {
 	c.converter.ConversionType = model.BatchImage
 	c.converter.SourcePath = path
 	c.updateStatus(fmt.Sprintf("Selected folder: %s", filepath.Base(path)))
+	c.updateOutputPath()
 	return path, nil
 }
 
@@ -209,6 +267,7 @@ func (c *AppController) HandleOutputSelection() (string, error) {
 	}
 
 	c.converter.OutputPath = path
+	c.updateOutputPath()
 	return path, nil
 }
 
@@ -260,9 +319,10 @@ func (c *AppController) StartConversion() error {
 			}
 		}
 		
-		successMsg := fmt.Sprintf("Conversion completed successfully!\nOutput saved to: %s", outputLocation)
+		successMsg := fmt.Sprintf("Conversion completed successfully!")
 		dialog.ShowInformation("Success", successMsg, c.window)
-		c.updateStatus(fmt.Sprintf("Output saved to: %s", outputLocation))
+		c.updateStatus("Conversion completed")
+		c.updateOutputPath()
 	}()
 
 	return nil

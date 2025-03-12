@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"path/filepath"
 	"s_conversion/controller"
 
 	"fyne.io/fyne/v2"
@@ -16,6 +17,30 @@ type UI struct {
 	controller *controller.AppController
 	progress   *widget.ProgressBar
 	status     *widget.Label
+	outputPath *widget.Label
+	openFolderBtn *widget.Button
+}
+
+func truncatePath(path string) string {
+	if len(path) <= 40 {
+		return path
+	}
+	
+	dir := filepath.Dir(path)
+	base := filepath.Base(path)
+	
+	// If the base name itself is too long
+	if len(base) > 20 {
+		base = base[:17] + "..."
+	}
+	
+	// Get the first and last parts of the directory
+	parts := filepath.SplitList(dir)
+	if len(parts) <= 2 {
+		return filepath.Join(dir, base)
+	}
+	
+	return filepath.Join(parts[0], "...", parts[len(parts)-1], base)
 }
 
 func NewUI(window fyne.Window) *UI {
@@ -24,7 +49,15 @@ func NewUI(window fyne.Window) *UI {
 		controller: controller.NewAppController(window),
 		progress:   widget.NewProgressBar(),
 		status:     widget.NewLabel("No file selected"),
+		outputPath: widget.NewLabel(""),
 	}
+
+	ui.openFolderBtn = widget.NewButtonWithIcon("Open Destination Folder", theme.FolderOpenIcon(), func() {
+		if err := ui.controller.OpenOutputFolder(); err != nil {
+			dialog.ShowError(err, window)
+		}
+	})
+	ui.openFolderBtn.Hide()
 
 	ui.controller.SetProgressCallback(func(progress float64) {
 		ui.progress.SetValue(progress)
@@ -32,6 +65,16 @@ func NewUI(window fyne.Window) *UI {
 
 	ui.controller.SetStatusCallback(func(status string) {
 		ui.status.SetText(status)
+	})
+
+	ui.controller.SetOutputPathCallback(func(path string) {
+		if path == "" {
+			ui.outputPath.SetText("")
+			ui.openFolderBtn.Hide()
+		} else {
+			ui.outputPath.SetText(fmt.Sprintf("Output folder: %s", truncatePath(path)))
+			ui.openFolderBtn.Show()
+		}
 	})
 
 	return ui
@@ -125,9 +168,13 @@ func (u *UI) CreateUI() fyne.CanvasObject {
 		outputButton,
 		convertButton,
 		u.progress,
-		container.NewHBox(
-			widget.NewLabel("Status:"),
-			u.status,
+		container.NewVBox(
+			container.NewHBox(
+				widget.NewLabel("Status:"),
+				u.status,
+			),
+			u.outputPath,
+			u.openFolderBtn,
 		),
 	)
 
