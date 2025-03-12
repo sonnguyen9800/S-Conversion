@@ -1,6 +1,7 @@
 package view
 
 import (
+	"fmt"
 	"s_conversion/controller"
 
 	"fyne.io/fyne/v2"
@@ -86,6 +87,19 @@ func (u *UI) handleBatchSelection() {
 	u.status.SetText("Folder selected for batch conversion")
 }
 
+func (u *UI) handleOutputSelection() {
+	if u.controller.IsConverting() {
+		dialog.ShowError(fmt.Errorf("conversion in progress"), u.window)
+		return
+	}
+	_, err := u.controller.HandleOutputSelection()
+	if err != nil {
+		dialog.ShowError(err, u.window)
+		return
+	}
+	u.status.SetText("Output destination selected")
+}
+
 func (u *UI) CreateUI() fyne.CanvasObject {
 	// Set menu
 	u.window.SetMainMenu(u.createMenuBar())
@@ -93,6 +107,7 @@ func (u *UI) CreateUI() fyne.CanvasObject {
 	// Create buttons
 	singleButton := widget.NewButtonWithIcon("Single Image", theme.FileIcon(), u.handleSingleImageSelection)
 	batchButton := widget.NewButtonWithIcon("Batch Conversion", theme.FolderIcon(), u.handleBatchSelection)
+	outputButton := widget.NewButtonWithIcon("Set Output Folder", theme.FolderOpenIcon(), u.handleOutputSelection)
 	
 	convertButton := widget.NewButtonWithIcon("Start Conversion", theme.MediaPlayIcon(), func() {
 		if err := u.controller.StartConversion(); err != nil {
@@ -109,6 +124,7 @@ func (u *UI) CreateUI() fyne.CanvasObject {
 			singleButton,
 			batchButton,
 		),
+		outputButton,
 		convertButton,
 		u.progress,
 		container.NewHBox(

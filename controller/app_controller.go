@@ -2,11 +2,12 @@ package controller
 
 import (
 	"fmt"
+	"os/exec"
+	"runtime"
 	"s_conversion/model"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/storage"
 )
 
 type AppController struct {
@@ -31,23 +32,36 @@ func (c *AppController) HandleSingleImageSelection() (string, error) {
 	if c.isConverting {
 		return "", fmt.Errorf("conversion in progress")
 	}
-	
-	dialog := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
-		if err != nil {
-			dialog.ShowError(err, c.window)
-			return
-		}
-		if reader == nil {
-			return
-		}
-		c.converter.ConversionType = model.SingleImage
-		c.converter.SourcePath = reader.URI().Path()
-	}, c.window)
-	
-	dialog.SetFilter(storage.NewExtensionFileFilter([]string{".webp"}))
-	dialog.Show()
-	
-	return c.converter.SourcePath, nil
+
+	// Use PowerShell for Windows, osascript for macOS, or zenity for Linux
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("powershell.exe", "-Command", `Add-Type -AssemblyName System.Windows.Forms
+		$f = New-Object System.Windows.Forms.OpenFileDialog
+		$f.Filter = "WebP files (*.webp)|*.webp"
+		$f.ShowDialog()
+		$f.FileName`)
+	case "darwin":
+		cmd = exec.Command("osascript", "-e", `choose file of type {"webp"} with prompt "Choose a WebP file"`)
+	default: // Linux and others
+		cmd = exec.Command("zenity", "--file-selection", "--file-filter=*.webp")
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("error selecting file: %v", err)
+	}
+
+	path := string(output)
+	if runtime.GOOS == "windows" {
+		// Remove newline characters from PowerShell output
+		path = path[:len(path)-2]
+	}
+
+	c.converter.ConversionType = model.SingleImage
+	c.converter.SourcePath = path
+	return path, nil
 }
 
 func (c *AppController) HandleBatchSelection() (string, error) {
@@ -55,21 +69,69 @@ func (c *AppController) HandleBatchSelection() (string, error) {
 		return "", fmt.Errorf("conversion in progress")
 	}
 
-	dialog := dialog.NewFolderOpen(func(list fyne.ListableURI, err error) {
-		if err != nil {
-			dialog.ShowError(err, c.window)
-			return
-		}
-		if list == nil {
-			return
-		}
-		c.converter.ConversionType = model.BatchImage
-		c.converter.SourcePath = list.Path()
-	}, c.window)
-	
-	dialog.Show()
-	
-	return c.converter.SourcePath, nil
+	// Use PowerShell for Windows, osascript for macOS, or zenity for Linux
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("powershell.exe", "-Command", `Add-Type -AssemblyName System.Windows.Forms
+		$f = New-Object System.Windows.Forms.FolderBrowserDialog
+		$f.ShowDialog()
+		$f.SelectedPath`)
+	case "darwin":
+		cmd = exec.Command("osascript", "-e", `choose folder with prompt "Choose a folder containing WebP files"`)
+	default: // Linux and others
+		cmd = exec.Command("zenity", "--file-selection", "--directory")
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("error selecting folder: %v", err)
+	}
+
+	path := string(output)
+	if runtime.GOOS == "windows" {
+		// Remove newline characters from PowerShell output
+		path = path[:len(path)-2]
+	}
+
+	c.converter.ConversionType = model.BatchImage
+	c.converter.SourcePath = path
+	return path, nil
+}
+
+func (c *AppController) HandleOutputSelection() (string, error) {
+	if c.isConverting {
+		return "", fmt.Errorf("conversion in progress")
+	}
+
+	// Use PowerShell for Windows, osascript for macOS, or zenity for Linux
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("powershell.exe", "-Command", `Add-Type -AssemblyName System.Windows.Forms
+		$f = New-Object System.Windows.Forms.FolderBrowserDialog
+		$f.Description = "Select output folder for converted images"
+		$f.ShowDialog()
+		$f.SelectedPath`)
+	case "darwin":
+		cmd = exec.Command("osascript", "-e", `choose folder with prompt "Select output folder for converted images"`)
+	default: // Linux and others
+		cmd = exec.Command("zenity", "--file-selection", "--directory", "--title=Select output folder")
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("error selecting output folder: %v", err)
+	}
+
+	path := string(output)
+	if runtime.GOOS == "windows" {
+		// Remove newline characters from PowerShell output
+		path = path[:len(path)-2]
+	}
+
+	c.converter.OutputPath = path
+	return path, nil
 }
 
 func (c *AppController) StartConversion() error {

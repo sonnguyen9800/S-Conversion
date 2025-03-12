@@ -27,6 +27,7 @@ const (
 type Converter struct {
 	ConversionType ConversionType
 	SourcePath     string
+	OutputPath     string  // New field for custom output destination
 	Progress       float64
 	TotalFiles     int
 	ConvertedFiles int
@@ -114,8 +115,24 @@ func (c *Converter) convertFile(sourcePath string) error {
 		return fmt.Errorf("error decoding WebP: %v", err)
 	}
 
+	// Determine output path
+	var outputPath string
+	if c.OutputPath != "" {
+		// Use custom output path
+		fileName := filepath.Base(strings.TrimSuffix(sourcePath, ".webp") + ".png")
+		outputPath = filepath.Join(c.OutputPath, fileName)
+	} else {
+		// Use default path (same as input)
+		outputPath = strings.TrimSuffix(sourcePath, ".webp") + ".png"
+	}
+
+	// Create output directory if it doesn't exist
+	outputDir := filepath.Dir(outputPath)
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return fmt.Errorf("error creating output directory: %v", err)
+	}
+
 	// Create output PNG file
-	outputPath := strings.TrimSuffix(sourcePath, ".webp") + ".png"
 	outputFile, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("error creating output file: %v", err)
