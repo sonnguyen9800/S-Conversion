@@ -15,11 +15,11 @@ import (
 )
 
 type UI struct {
-	window     fyne.Window
-	controller *controller.AppController
-	progress   *widget.ProgressBar
-	status     *widget.Label
-	outputPath *widget.Label
+	window        fyne.Window
+	controller    *controller.AppController
+	progress      *widget.ProgressBar
+	status        *widget.Label
+	outputPath    *widget.Label
 	openFolderBtn *widget.Button
 }
 
@@ -27,21 +27,21 @@ func truncatePath(path string) string {
 	if len(path) <= 40 {
 		return path
 	}
-	
+
 	dir := filepath.Dir(path)
 	base := filepath.Base(path)
-	
+
 	// If the base name itself is too long
 	if len(base) > 20 {
 		base = base[:17] + "..."
 	}
-	
+
 	// Get the first and last parts of the directory
 	parts := filepath.SplitList(dir)
 	if len(parts) <= 2 {
 		return filepath.Join(dir, base)
 	}
-	
+
 	return filepath.Join(parts[0], "...", parts[len(parts)-1], base)
 }
 
@@ -53,12 +53,15 @@ func truncateText(text string, maxLen int) string {
 }
 
 func NewUI(window fyne.Window) *UI {
+
+	outputUI := widget.NewLabel("Output folder: ")
+	outputUI.TextStyle = fyne.TextStyle{Bold: true}
 	ui := &UI{
 		window:     window,
 		controller: controller.NewAppController(window),
 		progress:   widget.NewProgressBar(),
 		status:     widget.NewLabel("No file selected"),
-		outputPath: widget.NewLabel(""),
+		outputPath: outputUI,
 	}
 
 	ui.openFolderBtn = widget.NewButtonWithIcon("Open Destination Folder", theme.FolderOpenIcon(), func() {
@@ -104,10 +107,6 @@ func (u *UI) createMenuBar() *fyne.MainMenu {
 		}),
 		fyne.NewMenuItem("Batch Conversion", func() {
 			u.handleBatchSelection()
-		}),
-		fyne.NewMenuItemSeparator(),
-		fyne.NewMenuItem("Exit", func() {
-			u.window.Close()
 		}),
 	)
 
@@ -167,7 +166,7 @@ func (u *UI) CreateUI() fyne.CanvasObject {
 	singleButton := widget.NewButtonWithIcon("Single Image", theme.FileIcon(), u.handleSingleImageSelection)
 	batchButton := widget.NewButtonWithIcon("Batch Conversion", theme.FolderIcon(), u.handleBatchSelection)
 	outputButton := widget.NewButtonWithIcon("Set Output Folder", theme.FolderOpenIcon(), u.handleOutputSelection)
-	
+
 	convertButton := widget.NewButtonWithIcon("Start Conversion", theme.MediaPlayIcon(), func() {
 		if err := u.controller.StartConversion(); err != nil {
 			dialog.ShowError(err, u.window)
@@ -178,16 +177,20 @@ func (u *UI) CreateUI() fyne.CanvasObject {
 	// Create header with specific styling
 	header := widget.NewLabel("Convert WebP to PNG")
 	header.TextStyle = fyne.TextStyle{Bold: true}
-	
+
 	// Create containers without additional padding
 	buttonContainer := container.New(layout.NewVBoxLayout(),
 		singleButton,
 		batchButton,
 	)
 
+	// Create status container
+	statusText := widget.NewLabel("Status:")
+	statusText.TextStyle = fyne.TextStyle{Bold: true}
+
 	statusContainer := container.New(layout.NewVBoxLayout(),
 		container.NewHBox(
-			widget.NewLabel("Status:"),
+			statusText,
 			u.status,
 		),
 		u.outputPath,
@@ -197,7 +200,6 @@ func (u *UI) CreateUI() fyne.CanvasObject {
 	// Create main content with minimal spacing
 	mainContent := container.New(layout.NewVBoxLayout(),
 		header,
-		layout.NewSpacer(),
 		buttonContainer,
 		outputButton,
 		convertButton,

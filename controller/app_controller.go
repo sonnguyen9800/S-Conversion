@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -13,18 +14,18 @@ import (
 )
 
 type AppController struct {
-	converter    *model.Converter
-	window      fyne.Window
-	onProgress  func(float64)
-	onStatus    func(string)
+	converter          *model.Converter
+	window             fyne.Window
+	onProgress         func(float64)
+	onStatus           func(string)
 	onOutputPathChange func(string)
-	isConverting bool
+	isConverting       bool
 }
 
 func NewAppController(window fyne.Window) *AppController {
 	return &AppController{
 		converter: model.NewConverter(),
-		window:   window,
+		window:    window,
 	}
 }
 
@@ -57,7 +58,7 @@ func (c *AppController) updateOutputPath() {
 			c.onOutputPathChange("")
 			return
 		}
-		
+
 		if c.converter.ConversionType == model.SingleImage {
 			outputPath = filepath.Dir(c.converter.SourcePath)
 		} else {
@@ -73,12 +74,16 @@ func (c *AppController) OpenOutputFolder() error {
 		if c.converter.SourcePath == "" {
 			return fmt.Errorf("no output location available")
 		}
-		
+
 		if c.converter.ConversionType == model.SingleImage {
 			outputPath = filepath.Dir(c.converter.SourcePath)
 		} else {
 			outputPath = c.converter.SourcePath
 		}
+	}
+
+	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+		return fmt.Errorf("output folder does not exist")
 	}
 
 	var cmd *exec.Cmd
@@ -92,6 +97,7 @@ func (c *AppController) OpenOutputFolder() error {
 	}
 
 	if err := cmd.Run(); err != nil {
+		fmt.Printf("error opening folder: %v\n", err)
 		return fmt.Errorf("error opening folder: %v", err)
 	}
 	return nil
@@ -318,7 +324,7 @@ func (c *AppController) StartConversion() error {
 				outputLocation = c.converter.SourcePath
 			}
 		}
-		
+
 		successMsg := fmt.Sprintf("Conversion completed successfully!")
 		dialog.ShowInformation("Success", successMsg, c.window)
 		c.updateStatus("Conversion completed")
