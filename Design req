@@ -1,0 +1,45 @@
+S-Conversion is a pc app (Window used to convert image from Webp to Png). This is a UI app with a simple interface.
+
+A. Requirement
+
+Conversation between webp to png. When the app open there is a small window appear. 
+- Inside the window there is a button to open file explorer to select the image to convert. This is single image conversion.
+- Inside the window there is a button for batch image conversion. Once click it allow user to select folder. This is batch image conversion.
+- Cannot select both single image and batch image conversion at the same time. 
+- Inside the window there is a button to start the conversion. If single image conversion is selected, it will convert the selected image. If batch image conversion is selected, it will convert all the images in the selected folder.
+- Inside the window there is a button to close the window.
+
+B. UI Design
+
+- The window is a small window with a simple interface.
+- The window has a title bar with the name "S-Conversion".
+- The window has a menu bar with the name "File" and "Help".
+- The window has a status bar with the name "Status".
+
+C. Functionality
+
+- The app will convert the image to png.
+- The app will show the progress of the conversion.
+- The app will show the result of the conversion.
+
+D. Error Handling
+
+- The app will show an error message if the image is not a webp.
+- The app will show an error message if the image is not found.
+- The app will show an error message if the image is not a valid image.
+
+E. Security
+
+- The app will not allow the user to convert more than 100 images at a time.
+- The app will not allow the user to convert more than 100MB of images at a time.
+
+F. Performance
+
+- The app will not allow the user to convert more than 100 images at a time.
+- The app will not allow the user to convert more than 100MB of images at a time.
+
+G. Technical Framework:
+- The language of this app would be Go-lang
+- The UI framework of this app would be Fyne
+- The app will be a single binary file.
+- The architecture would be simple MVC file.
