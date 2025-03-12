@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"s_conversion/model"
 	"strings"
@@ -15,6 +16,7 @@ type AppController struct {
 	converter    *model.Converter
 	window      fyne.Window
 	onProgress  func(float64)
+	onStatus    func(string)
 	isConverting bool
 }
 
@@ -27,6 +29,16 @@ func NewAppController(window fyne.Window) *AppController {
 
 func (c *AppController) SetProgressCallback(callback func(float64)) {
 	c.onProgress = callback
+}
+
+func (c *AppController) SetStatusCallback(callback func(string)) {
+	c.onStatus = callback
+}
+
+func (c *AppController) updateStatus(status string) {
+	if c.onStatus != nil {
+		c.onStatus(status)
+	}
 }
 
 func (c *AppController) HandleSingleImageSelection() (string, error) {
@@ -54,8 +66,10 @@ func (c *AppController) HandleSingleImageSelection() (string, error) {
 	if err != nil {
 		// Check if it's just a cancel operation
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+			c.updateStatus("No file selected")
 			return "", fmt.Errorf("file selection cancelled")
 		}
+		c.updateStatus("Error selecting file")
 		return "", fmt.Errorf("error selecting file: %v", err)
 	}
 
@@ -76,11 +90,13 @@ func (c *AppController) HandleSingleImageSelection() (string, error) {
 	}
 
 	if path == "" {
+		c.updateStatus("No file selected")
 		return "", fmt.Errorf("no file selected")
 	}
 
 	c.converter.ConversionType = model.SingleImage
 	c.converter.SourcePath = path
+	c.updateStatus(fmt.Sprintf("Selected file: %s", filepath.Base(path)))
 	return path, nil
 }
 
@@ -108,8 +124,10 @@ func (c *AppController) HandleBatchSelection() (string, error) {
 	if err != nil {
 		// Check if it's just a cancel operation
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+			c.updateStatus("No folder selected")
 			return "", fmt.Errorf("folder selection cancelled")
 		}
+		c.updateStatus("Error selecting folder")
 		return "", fmt.Errorf("error selecting folder: %v", err)
 	}
 
@@ -130,11 +148,13 @@ func (c *AppController) HandleBatchSelection() (string, error) {
 	}
 
 	if path == "" {
+		c.updateStatus("No folder selected")
 		return "", fmt.Errorf("no folder selected")
 	}
 
 	c.converter.ConversionType = model.BatchImage
 	c.converter.SourcePath = path
+	c.updateStatus(fmt.Sprintf("Selected folder: %s", filepath.Base(path)))
 	return path, nil
 }
 
@@ -198,6 +218,7 @@ func (c *AppController) StartConversion() error {
 	}
 
 	if c.converter.SourcePath == "" {
+		c.updateStatus("No source selected")
 		return fmt.Errorf("no source selected")
 	}
 
@@ -214,8 +235,10 @@ func (c *AppController) StartConversion() error {
 
 		switch c.converter.ConversionType {
 		case model.SingleImage:
+			c.updateStatus(fmt.Sprintf("Converting %s...", filepath.Base(c.converter.SourcePath)))
 			err = c.converter.ConvertSingle(c.converter.SourcePath)
 		case model.BatchImage:
+			c.updateStatus(fmt.Sprintf("Converting files in folder: %s...", filepath.Base(c.converter.SourcePath)))
 			err = c.converter.ConvertBatch(c.converter.SourcePath)
 		default:
 			err = fmt.Errorf("invalid conversion type")
@@ -223,10 +246,23 @@ func (c *AppController) StartConversion() error {
 
 		if err != nil {
 			dialog.ShowError(err, c.window)
+			c.updateStatus("Conversion failed")
 			return
 		}
 
-		dialog.ShowInformation("Success", "Conversion completed successfully!", c.window)
+		// Show success message with output location
+		outputLocation := c.converter.OutputPath
+		if outputLocation == "" {
+			if c.converter.ConversionType == model.SingleImage {
+				outputLocation = filepath.Dir(c.converter.SourcePath)
+			} else {
+				outputLocation = c.converter.SourcePath
+			}
+		}
+		
+		successMsg := fmt.Sprintf("Conversion completed successfully!\nOutput saved to: %s", outputLocation)
+		dialog.ShowInformation("Success", successMsg, c.window)
+		c.updateStatus(fmt.Sprintf("Output saved to: %s", outputLocation))
 	}()
 
 	return nil

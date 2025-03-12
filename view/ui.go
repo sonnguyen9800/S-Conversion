@@ -18,19 +18,20 @@ type UI struct {
 	status     *widget.Label
 }
 
-func AppUI(window fyne.Window) *UI {
+func NewUI(window fyne.Window) *UI {
 	ui := &UI{
 		window:     window,
 		controller: controller.NewAppController(window),
 		progress:   widget.NewProgressBar(),
-		status:     widget.NewLabel("Ready"),
+		status:     widget.NewLabel("No file selected"),
 	}
 
 	ui.controller.SetProgressCallback(func(progress float64) {
 		ui.progress.SetValue(progress)
-		if progress >= 1.0 {
-			ui.status.SetText("Ready")
-		}
+	})
+
+	ui.controller.SetStatusCallback(func(status string) {
+		ui.status.SetText(status)
 	})
 
 	return ui
@@ -65,26 +66,24 @@ func (u *UI) createMenuBar() *fyne.MainMenu {
 
 func (u *UI) handleSingleImageSelection() {
 	if u.controller.IsConverting() {
-		dialog.ShowError(nil, u.window)
+		dialog.ShowError(fmt.Errorf("conversion in progress"), u.window)
 		return
 	}
 	_, err := u.controller.HandleSingleImageSelection()
 	if err != nil {
 		dialog.ShowError(err, u.window)
 	}
-	u.status.SetText("Single image selected")
 }
 
 func (u *UI) handleBatchSelection() {
 	if u.controller.IsConverting() {
-		dialog.ShowError(nil, u.window)
+		dialog.ShowError(fmt.Errorf("conversion in progress"), u.window)
 		return
 	}
 	_, err := u.controller.HandleBatchSelection()
 	if err != nil {
 		dialog.ShowError(err, u.window)
 	}
-	u.status.SetText("Folder selected for batch conversion")
 }
 
 func (u *UI) handleOutputSelection() {
@@ -114,7 +113,6 @@ func (u *UI) CreateUI() fyne.CanvasObject {
 			dialog.ShowError(err, u.window)
 			return
 		}
-		u.status.SetText("Converting...")
 	})
 
 	// Create main content
@@ -139,6 +137,6 @@ func (u *UI) CreateUI() fyne.CanvasObject {
 // CreateUI creates and returns the main UI container
 func CreateUI() fyne.CanvasObject {
 	window := fyne.CurrentApp().Driver().AllWindows()[0]
-	ui := AppUI(window)
+	ui := NewUI(window)
 	return ui.CreateUI()
 }
