@@ -18,7 +18,7 @@ type UI struct {
 	status     *widget.Label
 }
 
-func NewUI(window fyne.Window) *UI {
+func AppUI(window fyne.Window) *UI {
 	ui := &UI{
 		window:     window,
 		controller: controller.NewAppController(window),
@@ -52,10 +52,10 @@ func (u *UI) createMenuBar() *fyne.MainMenu {
 
 	helpMenu := fyne.NewMenu("Help",
 		fyne.NewMenuItem("About", func() {
-			dialog.ShowInformation("About S-Conversion",
-				"S-Conversion is a simple tool to convert WebP images to PNG format.\n"+
+			dialog.ShowInformation("S-Conversion",
+				"S-Conversion is a simple tool to convert WebP images to PNG format made by sonnguyen9800.\n"+
 					"Version 1.0.0\n"+
-					"© 2024 S-Conversion",
+					"© 2024 S-Conversion ",
 				u.window)
 		}),
 	)
@@ -120,7 +120,7 @@ func (u *UI) CreateUI() fyne.CanvasObject {
 	// Create main content
 	content := container.NewVBox(
 		widget.NewLabel("Welcome to S-Conversion"),
-		container.NewHBox(
+		container.NewVBox(
 			singleButton,
 			batchButton,
 		),
@@ -139,6 +139,6 @@ func (u *UI) CreateUI() fyne.CanvasObject {
 // CreateUI creates and returns the main UI container
 func CreateUI() fyne.CanvasObject {
 	window := fyne.CurrentApp().Driver().AllWindows()[0]
-	ui := NewUI(window)
+	ui := AppUI(window)
 	return ui.CreateUI()
 }
