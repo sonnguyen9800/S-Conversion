@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"runtime"
 	"s_conversion/model"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
@@ -40,8 +41,9 @@ func (c *AppController) HandleSingleImageSelection() (string, error) {
 		cmd = exec.Command("powershell.exe", "-Command", `Add-Type -AssemblyName System.Windows.Forms
 		$f = New-Object System.Windows.Forms.OpenFileDialog
 		$f.Filter = "WebP files (*.webp)|*.webp"
-		$f.ShowDialog()
-		$f.FileName`)
+		if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+			$f.FileName
+		}`)
 	case "darwin":
 		cmd = exec.Command("osascript", "-e", `choose file of type {"webp"} with prompt "Choose a WebP file"`)
 	default: // Linux and others
@@ -50,13 +52,31 @@ func (c *AppController) HandleSingleImageSelection() (string, error) {
 
 	output, err := cmd.Output()
 	if err != nil {
+		// Check if it's just a cancel operation
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+			return "", fmt.Errorf("file selection cancelled")
+		}
 		return "", fmt.Errorf("error selecting file: %v", err)
 	}
 
 	path := string(output)
-	if runtime.GOOS == "windows" {
-		// Remove newline characters from PowerShell output
-		path = path[:len(path)-2]
+	path = strings.TrimSpace(path) // Remove any whitespace, newlines
+
+	// Handle platform-specific path formatting
+	switch runtime.GOOS {
+	case "windows":
+		// Remove any "OK" or dialog result text that might appear
+		if parts := strings.Split(path, "\r\n"); len(parts) > 0 {
+			path = parts[len(parts)-1] // Take the last non-empty line
+		}
+	case "darwin":
+		// macOS osascript might return alias format, convert to regular path
+		path = strings.TrimPrefix(path, "alias ")
+		path = strings.Trim(path, "\n")
+	}
+
+	if path == "" {
+		return "", fmt.Errorf("no file selected")
 	}
 
 	c.converter.ConversionType = model.SingleImage
@@ -75,8 +95,9 @@ func (c *AppController) HandleBatchSelection() (string, error) {
 	case "windows":
 		cmd = exec.Command("powershell.exe", "-Command", `Add-Type -AssemblyName System.Windows.Forms
 		$f = New-Object System.Windows.Forms.FolderBrowserDialog
-		$f.ShowDialog()
-		$f.SelectedPath`)
+		if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+			$f.SelectedPath
+		}`)
 	case "darwin":
 		cmd = exec.Command("osascript", "-e", `choose folder with prompt "Choose a folder containing WebP files"`)
 	default: // Linux and others
@@ -85,13 +106,31 @@ func (c *AppController) HandleBatchSelection() (string, error) {
 
 	output, err := cmd.Output()
 	if err != nil {
+		// Check if it's just a cancel operation
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+			return "", fmt.Errorf("folder selection cancelled")
+		}
 		return "", fmt.Errorf("error selecting folder: %v", err)
 	}
 
 	path := string(output)
-	if runtime.GOOS == "windows" {
-		// Remove newline characters from PowerShell output
-		path = path[:len(path)-2]
+	path = strings.TrimSpace(path) // Remove any whitespace, newlines
+
+	// Handle platform-specific path formatting
+	switch runtime.GOOS {
+	case "windows":
+		// Remove any "OK" or dialog result text that might appear
+		if parts := strings.Split(path, "\r\n"); len(parts) > 0 {
+			path = parts[len(parts)-1] // Take the last non-empty line
+		}
+	case "darwin":
+		// macOS osascript might return alias format, convert to regular path
+		path = strings.TrimPrefix(path, "alias ")
+		path = strings.Trim(path, "\n")
+	}
+
+	if path == "" {
+		return "", fmt.Errorf("no folder selected")
 	}
 
 	c.converter.ConversionType = model.BatchImage
@@ -111,8 +150,9 @@ func (c *AppController) HandleOutputSelection() (string, error) {
 		cmd = exec.Command("powershell.exe", "-Command", `Add-Type -AssemblyName System.Windows.Forms
 		$f = New-Object System.Windows.Forms.FolderBrowserDialog
 		$f.Description = "Select output folder for converted images"
-		$f.ShowDialog()
-		$f.SelectedPath`)
+		if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+			$f.SelectedPath
+		}`)
 	case "darwin":
 		cmd = exec.Command("osascript", "-e", `choose folder with prompt "Select output folder for converted images"`)
 	default: // Linux and others
@@ -121,13 +161,31 @@ func (c *AppController) HandleOutputSelection() (string, error) {
 
 	output, err := cmd.Output()
 	if err != nil {
+		// Check if it's just a cancel operation
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+			return "", fmt.Errorf("output folder selection cancelled")
+		}
 		return "", fmt.Errorf("error selecting output folder: %v", err)
 	}
 
 	path := string(output)
-	if runtime.GOOS == "windows" {
-		// Remove newline characters from PowerShell output
-		path = path[:len(path)-2]
+	path = strings.TrimSpace(path) // Remove any whitespace, newlines
+
+	// Handle platform-specific path formatting
+	switch runtime.GOOS {
+	case "windows":
+		// Remove any "OK" or dialog result text that might appear
+		if parts := strings.Split(path, "\r\n"); len(parts) > 0 {
+			path = parts[len(parts)-1] // Take the last non-empty line
+		}
+	case "darwin":
+		// macOS osascript might return alias format, convert to regular path
+		path = strings.TrimPrefix(path, "alias ")
+		path = strings.Trim(path, "\n")
+	}
+
+	if path == "" {
+		return "", fmt.Errorf("no output folder selected")
 	}
 
 	c.converter.OutputPath = path

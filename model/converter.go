@@ -40,12 +40,14 @@ func NewConverter() *Converter {
 }
 
 func (c *Converter) ValidateFile(path string) error {
+	print(path)
 	if !strings.HasSuffix(strings.ToLower(path), ".webp") {
 		return errors.New("file is not a WebP image")
 	}
 
 	info, err := os.Stat(path)
 	if err != nil {
+
 		return fmt.Errorf("error accessing file: %v", err)
 	}
 
