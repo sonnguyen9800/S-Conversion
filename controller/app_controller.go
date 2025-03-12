@@ -95,8 +95,11 @@ func (c *AppController) OpenOutputFolder() error {
 	default: // Linux and others
 		cmd = exec.Command("xdg-open", outputPath)
 	}
-
 	if err := cmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+			// Ignore exit status 1 since Explorer opened successfully
+			return nil
+		}
 		fmt.Printf("error opening folder: %v\n", err)
 		return fmt.Errorf("error opening folder: %v", err)
 	}

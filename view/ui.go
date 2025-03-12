@@ -118,7 +118,7 @@ func (u *UI) createMenuBar() *fyne.MainMenu {
 				url, _ := url.Parse("https://github.com/sonnguyen9800/S-Conversion")
 				_ = fyne.CurrentApp().OpenURL(url)
 			})
-			
+
 			websiteBtn := widget.NewButton("My Website", func() {
 				url, _ := url.Parse("https://sonnguyen9800.com/")
 				_ = fyne.CurrentApp().OpenURL(url)
