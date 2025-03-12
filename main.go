@@ -22,9 +22,9 @@ func main() {
 
 	// Set window properties
 	myWindow.Resize(fyne.NewSize(800, 600))
-	myWindow.SetFixedSize(false)
-	myWindow.CenterOnScreen()
-	myWindow.SetPadded(false) // Remove default padding
+	// myWindow.SetFixedSize(false)
+	// myWindow.CenterOnScreen()
+	// myWindow.SetPadded(false) // Remove default padding
 
 	// Create content with its own padding
 	content := view.CreateUI()

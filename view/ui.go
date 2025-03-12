@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"s_conversion/controller"
 	"strings"
@@ -112,10 +113,28 @@ func (u *UI) createMenuBar() *fyne.MainMenu {
 
 	helpMenu := fyne.NewMenu("Help",
 		fyne.NewMenuItem("About", func() {
-			dialog.ShowInformation("S-Conversion",
-				"S-Conversion is a simple tool to convert WebP images to PNG format made by sonnguyen9800.\n"+
-					"Version 1.0.0\n"+
-					"© 2024 S-Conversion ",
+			// Create buttons for links
+			githubBtn := widget.NewButton("Github", func() {
+				url, _ := url.Parse("https://github.com/sonnguyen9800/S-Conversion")
+				_ = fyne.CurrentApp().OpenURL(url)
+			})
+			
+			websiteBtn := widget.NewButton("My Website", func() {
+				url, _ := url.Parse("https://sonnguyen9800.com/")
+				_ = fyne.CurrentApp().OpenURL(url)
+			})
+
+			// Create button container
+			btnContainer := container.NewHBox(githubBtn, websiteBtn)
+
+			// Create custom dialog with buttons
+			dialog.ShowCustom("S-Conversion",
+				"Close",
+				container.NewVBox(
+					btnContainer,
+					widget.NewLabel("S-Conversion is a simple tool to convert WebP images to PNG format made by sonnguyen9800.\n"),
+					widget.NewLabel("Version 1.0.0 © 2024 S-Conversion"),
+				),
 				u.window)
 		}),
 	)
