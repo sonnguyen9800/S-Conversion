@@ -14,18 +14,23 @@ func main() {
 	// Set app icon
 	myApp.SetIcon(theme.FileImageIcon())
 	
+	// Create window
 	myWindow := myApp.NewWindow("S-Conversion")
 	
 	// Set window icon (this will replace the NO DC text)
 	myWindow.SetIcon(theme.FileImageIcon())
 	
-	// Set window size
+	// Set window properties
 	myWindow.Resize(fyne.NewSize(400, 300))
 	myWindow.SetFixedSize(true)
 	myWindow.CenterOnScreen()
-
+	myWindow.SetPadded(false) // Remove default padding
+	
+	// Create content with its own padding
+	content := view.CreateUI()
+	
 	// Set content
-	myWindow.SetContent(view.CreateUI())
+	myWindow.SetContent(content)
 	
 	// Show and run
 	myWindow.ShowAndRun()

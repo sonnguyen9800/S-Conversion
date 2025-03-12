@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"path/filepath"
 	"s_conversion/controller"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -43,6 +45,13 @@ func truncatePath(path string) string {
 	return filepath.Join(parts[0], "...", parts[len(parts)-1], base)
 }
 
+func truncateText(text string, maxLen int) string {
+	if len(text) <= maxLen {
+		return text
+	}
+	return text[:maxLen-3] + "..."
+}
+
 func NewUI(window fyne.Window) *UI {
 	ui := &UI{
 		window:     window,
@@ -64,7 +73,15 @@ func NewUI(window fyne.Window) *UI {
 	})
 
 	ui.controller.SetStatusCallback(func(status string) {
-		ui.status.SetText(status)
+		if strings.HasPrefix(status, "Selected file: ") {
+			filename := strings.TrimPrefix(status, "Selected file: ")
+			ui.status.SetText("Selected file: " + truncateText(filename, 30))
+		} else if strings.HasPrefix(status, "Selected folder: ") {
+			foldername := strings.TrimPrefix(status, "Selected folder: ")
+			ui.status.SetText("Selected folder: " + truncateText(foldername, 30))
+		} else {
+			ui.status.SetText(status)
+		}
 	})
 
 	ui.controller.SetOutputPathCallback(func(path string) {
@@ -158,27 +175,38 @@ func (u *UI) CreateUI() fyne.CanvasObject {
 		}
 	})
 
-	// Create main content
-	content := container.NewVBox(
-		widget.NewLabel("Welcome to S-Conversion"),
-		container.NewVBox(
-			singleButton,
-			batchButton,
+	// Create header with specific styling
+	header := widget.NewLabel("Convert WebP to PNG")
+	header.TextStyle = fyne.TextStyle{Bold: true}
+	
+	// Create containers without additional padding
+	buttonContainer := container.New(layout.NewVBoxLayout(),
+		singleButton,
+		batchButton,
+	)
+
+	statusContainer := container.New(layout.NewVBoxLayout(),
+		container.NewHBox(
+			widget.NewLabel("Status:"),
+			u.status,
 		),
+		u.outputPath,
+		u.openFolderBtn,
+	)
+
+	// Create main content with minimal spacing
+	mainContent := container.New(layout.NewVBoxLayout(),
+		header,
+		layout.NewSpacer(),
+		buttonContainer,
 		outputButton,
 		convertButton,
 		u.progress,
-		container.NewVBox(
-			container.NewHBox(
-				widget.NewLabel("Status:"),
-				u.status,
-			),
-			u.outputPath,
-			u.openFolderBtn,
-		),
+		statusContainer,
 	)
 
-	return container.NewPadded(content)
+	// Use a padding container with specific padding values
+	return container.NewPadded(mainContent)
 }
 
 // CreateUI creates and returns the main UI container
