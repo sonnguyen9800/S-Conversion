@@ -19,15 +19,15 @@ const (
 )
 
 const (
-	MaxBatchSize    = 100
-	MaxTotalSizeMB  = 100
+	MaxBatchSize    = 1000
+	MaxTotalSizeMB  = 1000
 	MaxFileSizeInMB = MaxTotalSizeMB * 1024 * 1024 // 100MB in bytes
 )
 
 type Converter struct {
 	ConversionType ConversionType
 	SourcePath     string
-	OutputPath     string  // New field for custom output destination
+	OutputPath     string // New field for custom output destination
 	Progress       float64
 	TotalFiles     int
 	ConvertedFiles int
